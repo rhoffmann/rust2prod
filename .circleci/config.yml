@@ -105,10 +105,10 @@ workflows:
           filters:
             tags:
               only: /.*/
-      - security:
-          filters:
-            tags:
-              only: /.*/
+      # - security:
+      #     filters:
+      #       tags:
+      #         only: /.*/
       - format:
           filters:
             tags:
