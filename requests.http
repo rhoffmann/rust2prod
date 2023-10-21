@@ -1,0 +1,9 @@
+GET http://localhost:8000/
+
+###
+
+GET http://localhost:8000/Richard
+
+###
+
+GET http://localhost:8000/health_check
