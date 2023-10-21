@@ -8,7 +8,7 @@ fn spawn_app() -> String {
     let port = socket.port();
     let ip = socket.ip().to_string();
 
-    let server = rust2prod::run(listener).expect("Failed to bind address");
+    let server = rust2prod::startup::run(listener).expect("Failed to bind address");
 
     // launch server as background task
     // drop the spawned future handle
