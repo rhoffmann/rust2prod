@@ -6,7 +6,7 @@ jobs:
 
     # services:
       # - name: postgres
-      - image: cimg/postgres:14
+      - image: cimg/postgres:14.9
         environment:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -23,6 +23,11 @@ jobs:
 
     steps:
       - checkout
+      - run:
+          name: Debug running docker services
+          command: |
+            docker ps
+            ps aux
       - run:
           name: Version information
           command: rustc --version; cargo --version; rustup --version
