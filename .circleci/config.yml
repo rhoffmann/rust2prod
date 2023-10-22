@@ -34,13 +34,16 @@ jobs:
       - restore_cache:
           keys:
             - v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}-${SQLX_VERSION}
-      - install_sqlx_cli:
+      - run:
+          name: Install SQLX cli
           command: cargo install sqlx-cli --version=${SQLX_VERSION} --features=${SQLX_FEATURES} --no-default-features --locked
 
-      - install_postgres_client:
+      - run:
+          name: install postgres client
           command: sudo apt update && sudo apt install postgresql-client -y
 
-      - migrate_database:
+      - run:
+          name: migrate database
           command: SKIP_DOCKER=true ./scripts/init_db.sh
 
       - run:
