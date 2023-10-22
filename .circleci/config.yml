@@ -1,56 +1,37 @@
 version: 2
 jobs:
+  setup-postgres:
+    docker:
+      - image: cimg/postgres:14.9
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    steps:
+      - run:
+          name: Wait for PostgreSQL
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+
   build-and-test:
     docker:
       - image: cimg/rust:1.73
-
-    # services:
-      # - name: postgres
-      - image: cimg/postgres:14.9
-        environment:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: postgres
-        # ports:
-          # - 5432:5432
-
     environment:
       # Fail the build if there are warnings
       RUSTFLAGS: '-D warnings'
       CARGO_TERM_COLOR: always
       SQLX_VERSION: 0.7.1
       SQLX_FEATURES: "rustls,postgres"
-
     steps:
       - checkout
       - run:
-          name: Debug running docker services
-          command: |
-            docker ps
-            ps aux
-      - run:
           name: Version information
           command: rustc --version; cargo --version; rustup --version
-      # If you have committed your Cargo.lock file to version control
-      # delete this step.
-      # - run:
-      #     name: Calculate dependencies
-      #     command: cargo generate-lockfile
       - restore_cache:
           keys:
             - v1-cargo-cache-{{ arch }}-{{ checksum "Cargo.lock" }}-${SQLX_VERSION}
       - run:
           name: Install SQLX cli
           command: cargo install sqlx-cli --version=${SQLX_VERSION} --features=${SQLX_FEATURES} --no-default-features --locked
-
-      - run:
-          name: install postgres client
-          command: sudo apt update && sudo apt install postgresql-client -y
-
-      - run:
-          name: migrate database
-          command: SKIP_DOCKER=true ./scripts/init_db.sh
-
       - run:
           name: Build all targets
           command: cargo build
@@ -64,6 +45,8 @@ jobs:
       - run:
           name: Run all tests
           command: cargo test
+
+
 
   # security:
   #   docker:
@@ -129,11 +112,16 @@ jobs:
           name: Coverage with docker
           command: docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin cargo tarpaulin --ignore-tests
 
+
+
 workflows:
   version: 2
   build-test:
     jobs:
+      - setup-postgres
       - build-and-test:
+          requires:
+            - setup-postgres
           filters:
             tags:
               only: /.*/
