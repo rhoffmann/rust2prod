@@ -1,3 +1,4 @@
+# shit circleci just won't work...
 version: 2
 jobs:
   build-and-test:
