@@ -1,20 +1,14 @@
 version: 2
 jobs:
-  setup-postgres:
-    docker:
-      - image: cimg/postgres:14.9
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres
-    steps:
-      - run:
-          name: Wait for PostgreSQL
-          command: dockerize -wait tcp://localhost:5432 -timeout 1m
-
   build-and-test:
     docker:
       - image: cimg/rust:1.73
+      - image: cimg/postgres:14.8
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: postgres
+
     environment:
       # Fail the build if there are warnings
       RUSTFLAGS: '-D warnings'
@@ -23,6 +17,9 @@ jobs:
       SQLX_FEATURES: "rustls,postgres"
     steps:
       - checkout
+      - run:
+          name: Wait for PostgreSQL
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
       - run:
           name: Version information
           command: rustc --version; cargo --version; rustup --version
@@ -118,10 +115,7 @@ workflows:
   version: 2
   build-test:
     jobs:
-      - setup-postgres
       - build-and-test:
-          requires:
-            - setup-postgres
           filters:
             tags:
               only: /.*/
