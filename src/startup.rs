@@ -1,6 +1,6 @@
 use std::net::TcpListener;
 
-use actix_web::{dev::Server, web, App, HttpServer};
+use actix_web::{dev::Server, middleware::Logger, web, App, HttpServer};
 use sqlx::PgPool;
 
 use crate::routes::*;
@@ -10,6 +10,7 @@ pub fn run(listener: TcpListener, connection_pool: PgPool) -> Result<Server, std
 
     let server = HttpServer::new(move || {
         App::new()
+            .wrap(Logger::default())
             // pass in application state (needs to be cloned bc. each worker needs to have a copy)
             .app_data(connection_pool.clone())
             // GET health_check
