@@ -13,10 +13,14 @@ pub fn run(listener: TcpListener, connection_pool: PgPool) -> Result<Server, std
             .wrap(Logger::default())
             // pass in application state (needs to be cloned bc. each worker needs to have a copy)
             .app_data(connection_pool.clone())
+            .route("/greet", web::get().to(greet))
+            .route("/greet/{name}", web::get().to(greet))
             // GET health_check
             .route("/health_check", web::get().to(health_check))
             // POST subscriptions
             .route("/subscriptions", web::post().to(subscribe))
+            // GET subscriptions
+            .route("/subscriptions", web::get().to(get_all_subscribers))
     })
     .listen(listener)?
     .run();

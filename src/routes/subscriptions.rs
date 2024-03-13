@@ -1,14 +1,15 @@
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct SubscribeFormData {
     email: String,
     name: String,
 }
+
 
 pub async fn subscribe(
     form: web::Form<SubscribeFormData>,
@@ -43,4 +44,19 @@ pub async fn subscribe(
             HttpResponse::InternalServerError().finish()
         }
     }
+}
+
+pub async fn get_all_subscribers(_pool: web::Data<PgPool>) -> HttpResponse{
+    HttpResponse::Ok().finish()
+    // let query = sqlx::query!("SELECT email, name FROM subscriptions");
+    // // let data: Vec<SubscribeFormData> = query.fetch_all(pool.get_ref()).await?.unwrap().collect();
+    // match query.fetch_all(pool.get_ref()).await {
+    //     Ok(result) => {
+    //         let subscribers: Vec<SubscribeFormData> = result.collect();
+    //         HttpResponse::Ok().json(subscribers)
+    //     }
+    //     Err(e) => {
+    //         HttpResponse::InternalServerError().finish()
+    //     }
+    // }
 }

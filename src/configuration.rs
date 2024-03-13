@@ -17,10 +17,7 @@ pub struct DatabaseSettings {
 
 impl DatabaseSettings {
     pub fn connection_string(&self) -> String {
-        format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.username, self.password, self.host, self.port, self.database_name
-        )
+        format!("{}/{}", self.connection_string_without_db(), self.database_name)
     }
     pub fn connection_string_without_db(&self) -> String {
         format!(
@@ -33,6 +30,8 @@ impl DatabaseSettings {
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     let builder =
         Config::builder().add_source(config::File::new("configuration", config::FileFormat::Json));
+
+    // TODO: add environment specific file handling, e.g. a different database server for testing?
 
     // look for 'configuration' top level file (yaml, json, etc)
     let s = builder.build()?;

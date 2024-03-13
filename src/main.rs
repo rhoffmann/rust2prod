@@ -21,5 +21,6 @@ async fn main() -> std::io::Result<()> {
 
     println!("running on http://{}", &address);
 
+    // need to await here, because we return a Server from run
     run(listener, connection_pool)?.await
 }

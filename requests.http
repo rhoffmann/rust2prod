@@ -6,4 +6,11 @@ POST http://localhost:8000/subscriptions
 content-type: application/x-www-form-urlencoded
 
 name=richard%20hoffmann
-&email=rhoffmann%40fastmail.com
+&email=rhoffmann3%40fastmail.com
+
+###
+
+GET http://localhost:8000/subscriptions
+
+###
+GET http://localhost:8000/greet/Richard
