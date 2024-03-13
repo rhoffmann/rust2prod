@@ -16,7 +16,6 @@ pub fn run(listener: TcpListener, connection_pool: PgPool) -> Result<Server, std
             // pass in application state (needs to be cloned bc. each worker needs to have a copy)
             .app_data(connection_pool.clone())
             // .route("/{filename:.*}", web::get().to(static_files))
-            .service(fs::Files::new("/", "./static").use_last_modified(true).index_file("index.html"))
             .route("/greet", web::get().to(greet))
             .route("/greet/{name}", web::get().to(greet))
             // GET health_check
@@ -25,6 +24,7 @@ pub fn run(listener: TcpListener, connection_pool: PgPool) -> Result<Server, std
             .route("/subscriptions", web::post().to(subscribe))
             // GET subscriptions
             .route("/subscriptions", web::get().to(get_all_subscribers))
+            .service(fs::Files::new("/", "./static").use_last_modified(true).index_file("index.html"))
     })
     .listen(listener)?
     .run();
