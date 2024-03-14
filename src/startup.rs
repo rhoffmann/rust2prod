@@ -24,6 +24,7 @@ pub fn run(listener: TcpListener, connection_pool: PgPool) -> Result<Server, std
             .route("/subscriptions", web::post().to(subscribe))
             // GET subscriptions
             .route("/subscriptions", web::get().to(get_all_subscribers))
+            // serve static files
             .service(fs::Files::new("/", "./static").use_last_modified(true).index_file("index.html"))
     })
     .listen(listener)?

@@ -3,6 +3,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
+use tracing::Instrument;
 
 #[derive(Deserialize, Serialize)]
 pub struct SubscribeFormData {
@@ -21,8 +22,6 @@ pub async fn subscribe(
 
     let _request_span_guard = request_span.enter();
 
-    tracing::info!("Saving new subscriber details in database",);
-
     let query = sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
@@ -33,6 +32,8 @@ pub async fn subscribe(
         form.name,
         Utc::now()
     );
+
+    let _query_span = tracing::info_span!("Saving new subscriber details in database");
 
     match query.execute(pool.get_ref()).await {
         Ok(_) => {
