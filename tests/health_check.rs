@@ -1,16 +1,34 @@
 use rust2prod::configuration::{get_configuration, DatabaseSettings};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
+use once_cell::sync::Lazy;
 use uuid::Uuid;
+use rust2prod::telemetry::{get_subscriber, init_subscriber_once};
 
 pub struct TestApplication {
     pub address: String,
     pub connection_pool: PgPool,
 }
 
+
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let default_filter_level = "info".to_string();
+    let subscriber_name = "test".to_string();
+
+    if std::env::var("TEST_LOG").is_ok() {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
+        init_subscriber_once(subscriber);
+    } else {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::sink);
+        init_subscriber_once(subscriber);
+    }
+});
+
 /// Spin up instance of the application
 /// and return the address e.g. (http://localhost:<PORT>)
 async fn spawn_app() -> TestApplication {
+    Lazy::force(&TRACING);
+
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
     let socket = listener.local_addr().unwrap();
     let address = format!("http://{}:{}", socket.ip(), socket.port());

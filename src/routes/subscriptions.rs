@@ -3,7 +3,6 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
-use tracing::Instrument;
 
 #[derive(Deserialize, Serialize)]
 pub struct SubscribeFormData {
@@ -11,18 +10,31 @@ pub struct SubscribeFormData {
     name: String,
 }
 
-
+#[tracing::instrument(
+    name = "Adding a new subscriber",
+    skip(form, pool),
+    fields(
+        request_id = %Uuid::new_v4(),
+        subscriber_email = %form.email,
+        subscriber_name = %form.name
+    )
+)]
 pub async fn subscribe(
     form: web::Form<SubscribeFormData>,
     pool: web::Data<PgPool>,
 ) -> HttpResponse {
-    // let new_user_str = format!("name='{}', email='{}'", form.email, form.name);
-    let trace_id = Uuid::new_v4();
-    let request_span = tracing::info_span!("Adding a new subscriber", %trace_id, subscriber_email = %form.email, subscriber_name = %form.name);
+    match insert_subscriber(&pool, &form).await {
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
 
-    let _request_span_guard = request_span.enter();
-
-    let query = sqlx::query!(
+#[tracing::instrument(
+    name = "Saving new subscriber details in the database",
+    skip(form, pool)
+)]
+pub async fn insert_subscriber(pool: &PgPool, form: &SubscribeFormData) -> Result<(), sqlx::Error>{
+    sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
         VALUES ($1, $2, $3, $4)
@@ -31,20 +43,15 @@ pub async fn subscribe(
         form.email,
         form.name,
         Utc::now()
-    );
-
-    let _query_span = tracing::info_span!("Saving new subscriber details in database");
-
-    match query.execute(pool.get_ref()).await {
-        Ok(_) => {
-            tracing::info!("New subscriber successfully saved");
-            HttpResponse::Ok().finish()
-        }
-        Err(e) => {
+    )
+        .execute(pool)
+        .await
+        .map_err(|e| {
             tracing::error!("Failed to execute query: {:?}", e);
-            HttpResponse::InternalServerError().finish()
-        }
-    }
+            e
+        })?;
+
+    Ok(())
 }
 
 pub async fn get_all_subscribers(_pool: web::Data<PgPool>) -> HttpResponse{
