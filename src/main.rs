@@ -1,4 +1,5 @@
 use std::net::TcpListener;
+use secrecy::ExposeSecret;
 
 use rust2prod::{configuration::get_configuration, startup::run};
 use sqlx::PgPool;
@@ -16,7 +17,7 @@ async fn main() -> Result<(), std::io::Error> {
     let address = format!("127.0.0.1:{}", configuration.application_port);
     let listener = TcpListener::bind(&address).expect("Failed to bind port");
 
-    let connection_pool = PgPool::connect(&configuration.database.connection_string())
+    let connection_pool = PgPool::connect(&configuration.database.connection_string().expose_secret())
         .await
         .expect("Failed to connect to postgres.");
 
