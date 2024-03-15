@@ -20,6 +20,7 @@ config = "0.14"
 uuid = { version = "1.5.0", features = ["v4"] }
 chrono = "0.4.15"
 tracing = { version = "0.1", features = ["log"] }
+tracing-actix-web = "0.7.10"
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["registry", "env-filter"]}
 tracing-bunyan-formatter = "0.3.0"

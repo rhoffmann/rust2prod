@@ -15,3 +15,8 @@
 ## Test
 
 - `TEST_LOG=true cargo test [testcase] | bunyan`
+
+
+### TODOs notes to self
+
+- [ ] add opentelemetry and send to [honeycomb](https://honeycomb.io) or [jaeger](https://www.jaegertracing.io/) (see [tracing-opentelemetry](https://docs.rs/tracing-opentelemetry/latest/tracing_opentelemetry/index.html))

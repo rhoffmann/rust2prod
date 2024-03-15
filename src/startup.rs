@@ -1,8 +1,9 @@
 use std::net::TcpListener;
 
-use actix_web::{dev::Server, middleware::Logger, web, App, HttpServer};
+use actix_web::{dev::Server, web, App, HttpServer};
 use actix_files as fs;
 use sqlx::PgPool;
+use tracing_actix_web::TracingLogger;
 
 use crate::routes::*;
 
@@ -12,7 +13,7 @@ pub fn run(listener: TcpListener, connection_pool: PgPool) -> Result<Server, std
 
     let server = HttpServer::new(move || {
         App::new()
-            .wrap(Logger::default())
+            .wrap(TracingLogger::default())
             // pass in application state (needs to be cloned bc. each worker needs to have a copy)
             .app_data(connection_pool.clone())
             // .route("/{filename:.*}", web::get().to(static_files))
