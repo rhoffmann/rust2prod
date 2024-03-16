@@ -1,9 +1,18 @@
-# builder stage
-FROM rust:1.76.0 AS builder
-LABEL authors="richard"
-
+# chefing
+FROM lukemathwalker/cargo-chef:latest-rust-1.76.0 as chef
 WORKDIR /app
 RUN apt update && apt install -y lld clang
+
+FROM chef AS planner
+COPY . .
+# Compute a lock-like file for the project
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+
+# build project from dependencies
+RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 ENV SQLX_OFFLINE true
 RUN cargo build --release
