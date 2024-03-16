@@ -122,6 +122,38 @@ async fn subscribe_returns_200_successful_for_valid_data() {
 }
 
 #[tokio::test]
+async fn subscribe_returns_400_when_fields_are_present_but_invalid() {
+    // arrange
+    let app = spawn_app().await;
+    let client = reqwest::Client::new();
+
+    let test_cases = vec![
+        ("name=the%20boss&email=notanemail", "invalid email"),
+        ("name=&email=the_boss%40gmail.com", "empty name"),
+        ("name=the%20boss&email=", "empty email"),
+    ];
+
+    for (body, error_message) in test_cases {
+        // act
+        let response = client
+            .post(&format!("{}/subscriptions", &app.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request.");
+
+        // assert
+        assert_eq!(
+            400,
+            response.status().as_u16(),
+            "API did not return 400 Bad Request when payload was {}.",
+            error_message
+        );
+    }
+}
+
+#[tokio::test]
 async fn subscribe_returns_400_for_missing_data() {
     // arrange
     let app = spawn_app().await;
