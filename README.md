@@ -1,4 +1,4 @@
-# Rust2Prod
+# rust2prod
 
 
 ## Set up
@@ -6,6 +6,7 @@
 - `./scripts/init_db.sh` for fresh setup with docker and migrations
 - `SKIP_DOCKER=true ./scripts/init_db.sh` for local setup without docker
 - if you want pretty logs, `cargo install bunyan` and pipe application or test through it (`cargo watch -x run | bunyan`)
+- remember to `DATABASE_URL=CONNECTIONSTRING sqlx migrate run` after changing the schema
 
 ## Run 
 
@@ -13,7 +14,7 @@
 
 ## Test
 
-- `TEST_LOG=true cargo test [testcase]`
+`TEST_LOG=true cargo test [testcase]`
 
 ### TODOs
 

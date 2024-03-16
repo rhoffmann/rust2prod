@@ -39,4 +39,4 @@ databases:
     name: newsletter
     num_nodes: 1
     size: db-s-1vcpu-1gb
-    version: "12" # newer versions seem only to be available in clusters
+    version: "12" # newer versions seem only to be available in managed db clusters
