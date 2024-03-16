@@ -1,0 +1,4 @@
+application:
+  host: "127.0.0.1"
+database:
+  port: "5433" # use a different database instance for tests so we dont trash the development DB
