@@ -1848,6 +1848,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "resend-email"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b65b993f0dfd5b56ff7c6397a14130116f65bea3f308fdb47edcda6e561a363d"
+dependencies = [
+ "reqwest",
+ "serde",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "ring"
 version = "0.16.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1921,6 +1933,7 @@ dependencies = [
  "quickcheck_macros",
  "rand",
  "reqwest",
+ "resend-email",
  "secrecy",
  "serde",
  "serde-aux",

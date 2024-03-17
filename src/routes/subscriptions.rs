@@ -39,7 +39,7 @@ pub async fn subscribe(
     pool: web::Data<PgPool>,
 ) -> HttpResponse {
 
-    // try into here is a trait that is implemented by TryFrom for the NewSubscriber struct
+    // try_into here is a trait fn that is implemented by TryFrom for the NewSubscriber struct
     let new_subscriber = match form.0.try_into() {
         Ok(subscriber) => subscriber,
         Err(_) => return HttpResponse::BadRequest().finish(),
