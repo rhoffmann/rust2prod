@@ -2,3 +2,6 @@ application:
   host: "0.0.0.0"
 database:
   require_ssl: true
+email_client:
+  sender_email: "richard@richnet.guru"
+  base_url: "https://api.resend.com"
