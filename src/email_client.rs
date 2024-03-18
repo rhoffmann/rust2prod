@@ -10,12 +10,12 @@ pub struct EmailClient {
 }
 
 #[derive(Serialize)]
-struct SendEmailRequest {
-    from: String,
-    to: String,
-    subject: String,
-    text: String,
-    html: String,
+struct SendEmailRequest<'a> {
+    from: &'a str,
+    to: &'a str,
+    subject: &'a str,
+    text: &'a str,
+    html: &'a str,
 }
 
 impl EmailClient {
@@ -32,11 +32,11 @@ impl EmailClient {
         let url = self.base_url.join("email").unwrap();
 
         let request_body = SendEmailRequest {
-            from: self.sender.as_ref().to_owned(),
-            to: to.as_ref().to_owned(),
-            subject: subject.to_owned(),
-            text: text_content.to_owned(),
-            html: html_content.to_owned(),
+            from: self.sender.as_ref(),
+            to: to.as_ref(),
+            subject,
+            text: text_content,
+            html: html_content,
         };
 
         self.http_client
