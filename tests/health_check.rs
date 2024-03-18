@@ -39,10 +39,13 @@ async fn spawn_app() -> TestApplication {
 
     let sender_email = configuration.email_client.sender().expect("Invalid sender email address");
 
+    let timeout = configuration.email_client.timeout();
+
     let email_client = EmailClient::new(
         configuration.email_client.base_url,
         sender_email,
         configuration.email_client.authorization_token,
+        timeout,
     );
 
     let connection_pool = configure_database(&configuration.database).await;
@@ -83,7 +86,6 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
 }
 
 /// --- arrange, act, assert
-
 #[tokio::test]
 async fn health_check_works() {
     let app = spawn_app().await;
