@@ -57,19 +57,41 @@ mod tests {
     use fake::faker::internet::en::SafeEmail;
     use fake::faker::lorem::en::{Sentence, Paragraph};
     use secrecy::Secret;
-    use wiremock::{Mock, MockServer};
-    use wiremock::matchers::any;
+    use wiremock::{Mock, MockServer, Request};
+    use wiremock::matchers::{header, header_exists, method, path};
     use crate::domain::SubscriberEmail;
     use crate::email_client::EmailClient;
 
     #[tokio::test]
-    async fn send_email_fires_a_request_to_base_url() {
+    async fn send_email_sends_expected_request() {
         // arrange
         let mock_server = MockServer::start().await;
         let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
         let email_client = EmailClient::new(mock_server.uri(), sender, Secret::new(Faker.fake()));
 
-        Mock::given(any())
+        struct SendEmailBodyMatcher;
+
+        impl wiremock::Match for SendEmailBodyMatcher {
+            fn matches(&self, request: &Request) -> bool {
+                let result: Result<serde_json::Value, _> = serde_json::from_slice(&request.body);
+
+                if let Ok(body) = result {
+                    body.get("from").is_some()
+                        && body.get("to").is_some()
+                        && body.get("subject").is_some()
+                        && body.get("text").is_some()
+                        && body.get("html").is_some()
+                } else {
+                    false
+                }
+            }
+        }
+
+        Mock::given(header_exists("Authorization"))
+            .and(method("POST"))
+            .and(path("/email"))
+            .and(header("Content-Type", "application/json"))
+            .and(SendEmailBodyMatcher)
             .respond_with(wiremock::ResponseTemplate::new(200))
             .expect(1)
             .mount(&mock_server)
@@ -82,6 +104,8 @@ mod tests {
         // act
 
         let _ = email_client.send_email(subscriber_email, &subject, &content, &content).await;
+
         // assert
+        // mock exceptions are checked when dropped
     }
 }
