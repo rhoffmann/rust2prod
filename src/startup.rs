@@ -4,10 +4,30 @@ use actix_web::{dev::Server, web, App, HttpServer};
 use actix_files as fs;
 use sqlx::PgPool;
 use tracing_actix_web::TracingLogger;
+use crate::configuration::{get_configuration, Settings};
 use crate::email_client::EmailClient;
 
 use crate::routes::*;
+use crate::telemetry::{get_subscriber, init_subscriber_once};
 
+
+pub fn build(configuration: Settings) -> Result<Server, std::io::Error> {
+    let connection_pool = PgPool::connect_lazy_with(configuration.database.with_db());
+    let sender_email = configuration.email_client.sender().expect("Invalid sender email address");
+    let timeout = configuration.email_client.timeout();
+
+    let email_client = EmailClient::new(
+        configuration.email_client.base_url,
+        sender_email,
+        configuration.email_client.authorization_token,
+        timeout,
+    );
+
+    let address = format!("{}:{}", configuration.application.host, configuration.application.port);
+    let listener = TcpListener::bind(&address).expect("Failed to bind port");
+
+    run(listener, connection_pool, email_client)
+}
 
 pub fn run(listener: TcpListener, connection_pool: PgPool, email_client: EmailClient) -> Result<Server, std::io::Error> {
     let connection_pool = web::Data::new(connection_pool);
@@ -31,8 +51,8 @@ pub fn run(listener: TcpListener, connection_pool: PgPool, email_client: EmailCl
             // serve static files
             .service(fs::Files::new("/", "./static").use_last_modified(true).index_file("index.html"))
     })
-    .listen(listener)?
-    .run();
+        .listen(listener)?
+        .run();
 
     // error will be propagated from bind / listener
     // return server, no await
