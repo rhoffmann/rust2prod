@@ -1,4 +1,4 @@
-use rust2prod::{configuration::get_configuration, startup::run};
+use rust2prod::{configuration::get_configuration};
 use rust2prod::startup::build;
 use rust2prod::telemetry::{get_subscriber, init_subscriber_once};
 
@@ -12,7 +12,9 @@ async fn main() -> Result<(), std::io::Error> {
     let configuration = get_configuration().expect("Failed to read configuration");
     let server = build(configuration).await?;
 
-    println!("running on http://{}:{}", &configuration.application.host, &configuration.application.port);
+    // trick the borrow checker :troll:
+    let configuration = get_configuration().unwrap();
+    println!("running on http://{}:{}", configuration.application.host, configuration.application.port);
 
     server.await?;
     Ok(())
