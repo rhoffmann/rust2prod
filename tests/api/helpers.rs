@@ -1,10 +1,9 @@
-use std::net::TcpListener;
 use once_cell::sync::Lazy;
 use uuid::Uuid;
-use rust2prod::email_client::EmailClient;
 use rust2prod::telemetry::{get_subscriber, init_subscriber_once};
 use rust2prod::configuration::{get_configuration, DatabaseSettings};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
+use rust2prod::startup::{Application, get_connection_pool};
 
 
 static TRACING: Lazy<()> = Lazy::new(|| {
@@ -31,36 +30,27 @@ pub struct TestApplication {
 pub async fn spawn_app() -> TestApplication {
     Lazy::force(&TRACING);
 
-    let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
-    let socket = listener.local_addr().unwrap();
-    let address = format!("http://{}:{}", socket.ip(), socket.port());
+    let configuration = {
+        let mut c = get_configuration().expect("Failed to read configuration");
+        c.database.database_name = Uuid::new_v4().to_string();
+        c.application.port = 0;
+        c
+    };
 
-    let mut configuration = get_configuration().expect("Failed to read configuration");
-    configuration.database.database_name = Uuid::new_v4().to_string();
+    configure_database(&configuration.database).await;
 
-    let sender_email = configuration.email_client.sender().expect("Invalid sender email address");
+    let application = Application::build(configuration.clone())
+        .await
+        .expect("Failed to build application");
 
-    let timeout = configuration.email_client.timeout();
+    let address = format!("http://127.0.0.1:{}", application.port());
 
-    let email_client = EmailClient::new(
-        configuration.email_client.base_url,
-        sender_email,
-        configuration.email_client.authorization_token,
-        timeout,
-    );
-
-    let connection_pool = configure_database(&configuration.database).await;
-
-    let server =
-        rust2prod::startup::run(listener, connection_pool.clone(), email_client).expect("Failed to bind address");
-
-    // launch server as background task
     // drop the spawned future handle
-    let _ = tokio::spawn(server);
+    let _ = tokio::spawn(application.run_until_stopped());
 
     TestApplication {
         address,
-        connection_pool,
+        connection_pool: get_connection_pool(&configuration.database),
     }
 }
 
