@@ -25,7 +25,7 @@ pub struct TestApplication {
 }
 
 impl TestApplication {
-    pub async fn post_subscriptions(&self, body: &str) -> reqwest::Response {
+    pub async fn post_subscriptions(&self, body: String) -> reqwest::Response {
         let client = reqwest::Client::new();
 
         client

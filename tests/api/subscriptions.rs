@@ -4,7 +4,6 @@ use crate::helpers::spawn_app;
 async fn subscribe_returns_200_successful_for_valid_data() {
     // arrange
     let app = spawn_app().await;
-    let client = reqwest::Client::new();
 
     // act
     let body = "name=the%20boss&email=the_boss%40gmail.com";
@@ -27,7 +26,6 @@ async fn subscribe_returns_200_successful_for_valid_data() {
 async fn subscribe_returns_400_when_fields_are_present_but_invalid() {
     // arrange
     let app = spawn_app().await;
-    let client = reqwest::Client::new();
 
     let test_cases = vec![
         ("name=the%20boss&email=notanemail", "invalid email"),
@@ -53,7 +51,6 @@ async fn subscribe_returns_400_when_fields_are_present_but_invalid() {
 async fn subscribe_returns_400_for_missing_data() {
     // arrange
     let app = spawn_app().await;
-    let client = reqwest::Client::new();
 
     let test_cases = vec![
         ("name=the%20boss", "missing the email"),
