@@ -4,19 +4,12 @@ use crate::helpers::spawn_app;
 async fn subscribe_returns_200_successful_for_valid_data() {
     // arrange
     let app = spawn_app().await;
-
     let client = reqwest::Client::new();
 
     // act
     let body = "name=the%20boss&email=the_boss%40gmail.com";
 
-    let response = client
-        .post(&format!("{}/subscriptions", &app.address))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to execute request.");
+    let response = app.post_subscriptions(body.into()).await;
 
     // assert
     assert_eq!(200, response.status().as_u16());
@@ -44,13 +37,7 @@ async fn subscribe_returns_400_when_fields_are_present_but_invalid() {
 
     for (body, error_message) in test_cases {
         // act
-        let response = client
-            .post(&format!("{}/subscriptions", &app.address))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(body)
-            .send()
-            .await
-            .expect("Failed to execute request.");
+        let response = app.post_subscriptions(body.into()).await;
 
         // assert
         assert_eq!(
@@ -66,7 +53,6 @@ async fn subscribe_returns_400_when_fields_are_present_but_invalid() {
 async fn subscribe_returns_400_for_missing_data() {
     // arrange
     let app = spawn_app().await;
-
     let client = reqwest::Client::new();
 
     let test_cases = vec![
@@ -78,13 +64,7 @@ async fn subscribe_returns_400_for_missing_data() {
     // act
 
     for (invalid_body, error_message) in test_cases {
-        let response = client
-            .post(&format!("{}/subscriptions", &app.address))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(invalid_body)
-            .send()
-            .await
-            .expect("Failed to execute request.");
+        let response = app.post_subscriptions(invalid_body.into()).await;
 
         // assert
         assert_eq!(
