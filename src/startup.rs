@@ -1,12 +1,12 @@
 use std::net::TcpListener;
 
-use actix_web::{dev::Server, web, App, HttpServer};
-use actix_files as fs;
-use sqlx::PgPool;
-use sqlx::postgres::PgPoolOptions;
-use tracing_actix_web::TracingLogger;
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::email_client::EmailClient;
+use actix_files as fs;
+use actix_web::{dev::Server, web, App, HttpServer};
+use sqlx::postgres::PgPoolOptions;
+use sqlx::PgPool;
+use tracing_actix_web::TracingLogger;
 
 use crate::routes::*;
 
@@ -33,9 +33,12 @@ impl Application {
             timeout,
         );
 
-        let address = format!("{}:{}", configuration.application.host, configuration.application.port);
+        let address = format!(
+            "{}:{}",
+            configuration.application.host, configuration.application.port
+        );
 
-        let listener = TcpListener::bind(&address)?;
+        let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
 
         let server = run(listener, connection_pool, email_client)?;
@@ -51,12 +54,15 @@ impl Application {
     }
 }
 
-
 pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
     PgPoolOptions::new().connect_lazy_with(configuration.with_db())
 }
 
-pub fn run(listener: TcpListener, connection_pool: PgPool, email_client: EmailClient) -> Result<Server, std::io::Error> {
+pub fn run(
+    listener: TcpListener,
+    connection_pool: PgPool,
+    email_client: EmailClient,
+) -> Result<Server, std::io::Error> {
     let connection_pool = web::Data::new(connection_pool);
     let email_client = web::Data::new(email_client);
 
@@ -76,10 +82,14 @@ pub fn run(listener: TcpListener, connection_pool: PgPool, email_client: EmailCl
             // GET subscriptions
             .route("/subscriptions", web::get().to(get_all_subscribers))
             // serve static files
-            .service(fs::Files::new("/", "./static").use_last_modified(true).index_file("index.html"))
+            .service(
+                fs::Files::new("/", "./static")
+                    .use_last_modified(true)
+                    .index_file("index.html"),
+            )
     })
-        .listen(listener)?
-        .run();
+    .listen(listener)?
+    .run();
 
     // error will be propagated from bind / listener
     // return server, no await

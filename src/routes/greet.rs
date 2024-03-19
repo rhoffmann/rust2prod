@@ -1,7 +1,7 @@
-use std::env;
 use actix_web::{HttpRequest, HttpResponse, Responder};
 use resend_email::client::ResendClient;
 use resend_email::mail::MailText;
+use std::env;
 
 pub async fn greet(req: HttpRequest) -> impl Responder {
     let name = req.match_info().get("name").unwrap_or("World");
@@ -10,7 +10,7 @@ pub async fn greet(req: HttpRequest) -> impl Responder {
 
     let resend_token = match env::var("RESEND_API_TOKEN") {
         Ok(token) => token,
-        Err(_) => return HttpResponse::Ok().body(body)
+        Err(_) => return HttpResponse::Ok().body(body),
     };
 
     let mail = MailText {
@@ -18,15 +18,13 @@ pub async fn greet(req: HttpRequest) -> impl Responder {
         to: vec!["rjh.hoffmann@googlemail.com"],
         subject: subject.as_str(),
         text: body.as_str(),
-        attachments: None
+        attachments: None,
     };
 
     let client = ResendClient::new(resend_token.as_str());
 
-    let response = match client.send(&mail).await {
-        Ok(_) =>  HttpResponse::Ok().body(body),
-        Err(_) => HttpResponse::InternalServerError().finish()
-    };
-
-    response
+    match client.send(&mail).await {
+        Ok(_) => HttpResponse::Ok().body(body),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
 }

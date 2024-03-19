@@ -1,9 +1,9 @@
-use config::{Config};
+use crate::domain::SubscriberEmail;
+use config::Config;
 use secrecy::{ExposeSecret, Secret};
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::ConnectOptions;
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
-use crate::domain::SubscriberEmail;
+use sqlx::ConnectOptions;
 
 #[derive(serde::Deserialize, Clone)]
 pub struct Settings {
@@ -37,7 +37,6 @@ pub struct EmailClientSettings {
     pub authorization_token: Secret<String>,
     pub timeout_milliseconds: u64,
 }
-
 
 pub enum Environment {
     Local,
@@ -78,14 +77,16 @@ impl DatabaseSettings {
 
         PgConnectOptions::new()
             .username(&self.username)
-            .password(&self.password.expose_secret())
+            .password(self.password.expose_secret())
             .host(&self.host)
             .port(self.port)
             .ssl_mode(ssl_mode)
     }
     pub fn with_db(&self) -> PgConnectOptions {
         let options = self.without_db().database(&self.database_name);
-        options.clone().log_statements(tracing_log::log::LevelFilter::Trace);
+        options
+            .clone()
+            .log_statements(tracing_log::log::LevelFilter::Trace);
         options
     }
 }
@@ -113,11 +114,16 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
 
     let settings = Config::builder()
         .add_source(config::File::from(configuration_directory.join("base.yaml")).required(true))
-        .add_source(config::File::from(configuration_directory.join(environment_filename)).required(true))
+        .add_source(
+            config::File::from(configuration_directory.join(environment_filename)).required(true),
+        )
         // we can also add settings from environment variables e.g. settings.application.port with APP_APPLICATION__PORT=5001
-        .add_source(config::Environment::with_prefix("APP").prefix_separator("_").separator("__"))
+        .add_source(
+            config::Environment::with_prefix("APP")
+                .prefix_separator("_")
+                .separator("__"),
+        )
         .build()?;
 
     settings.try_deserialize::<Settings>()
 }
-
