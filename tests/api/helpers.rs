@@ -1,10 +1,10 @@
 use once_cell::sync::Lazy;
-use uuid::Uuid;
-use rust2prod::telemetry::{get_subscriber, init_subscriber_once};
 use rust2prod::configuration::{get_configuration, DatabaseSettings};
+use rust2prod::startup::{get_connection_pool, Application};
+use rust2prod::telemetry::{get_subscriber, init_subscriber_once};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
-use rust2prod::startup::{Application, get_connection_pool};
-
+use uuid::Uuid;
+use wiremock::MockServer;
 
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_level = "info".to_string();
@@ -22,6 +22,7 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 pub struct TestApplication {
     pub address: String,
     pub connection_pool: PgPool,
+    pub email_server: MockServer,
 }
 
 impl TestApplication {
@@ -56,6 +57,8 @@ pub async fn spawn_app() -> TestApplication {
         .await
         .expect("Failed to build application");
 
+    let email_server = MockServer::start().await;
+
     let address = format!("http://127.0.0.1:{}", application.port());
 
     // drop the spawned future handle
@@ -64,9 +67,9 @@ pub async fn spawn_app() -> TestApplication {
     TestApplication {
         address,
         connection_pool: get_connection_pool(&configuration.database),
+        email_server,
     }
 }
-
 
 async fn configure_database(config: &DatabaseSettings) -> PgPool {
     let mut connection = PgConnection::connect_with(&config.without_db())
