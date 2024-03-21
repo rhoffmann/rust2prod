@@ -80,6 +80,8 @@ pub fn run(
             .route("/health_check", web::get().to(health_check))
             // POST subscriptions
             .route("/subscriptions", web::post().to(subscribe))
+            // POST subscriptions/confirm
+            .route("/subscriptions/confirm", web::get().to(confirm))
             // GET subscriptions
             .route("/subscriptions", web::get().to(get_all_subscribers))
             // serve static files

@@ -1,10 +1,11 @@
+mod file_handlers;
+mod greet;
 mod health_check;
 mod subscriptions;
-mod greet;
-mod file_handlers;
+mod subscriptions_confirm;
 
+pub use file_handlers::*;
+pub use greet::*;
 pub use health_check::*;
 pub use subscriptions::*;
-pub use greet::*;
-pub use file_handlers::*;
-
+pub use subscriptions_confirm::*;
