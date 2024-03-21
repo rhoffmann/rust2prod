@@ -44,10 +44,13 @@ impl TestApplication {
 pub async fn spawn_app() -> TestApplication {
     Lazy::force(&TRACING);
 
+    let email_server = MockServer::start().await;
+
     let configuration = {
         let mut c = get_configuration().expect("Failed to read configuration");
         c.database.database_name = Uuid::new_v4().to_string();
         c.application.port = 0;
+        c.email_client.base_url = email_server.uri();
         c
     };
 
@@ -56,8 +59,6 @@ pub async fn spawn_app() -> TestApplication {
     let application = Application::build(configuration.clone())
         .await
         .expect("Failed to build application");
-
-    let email_server = MockServer::start().await;
 
     let address = format!("http://127.0.0.1:{}", application.port());
 

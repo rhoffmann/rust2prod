@@ -23,11 +23,14 @@ chrono = "0.4.15"
 tracing = { version = "0.1", features = ["log"] }
 tracing-actix-web = "0.7.10"
 tracing-log = "0.2.0"
-tracing-subscriber = { version = "0.3.18", features = ["registry", "env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = [
+    "registry",
+    "env-filter",
+] }
 tracing-bunyan-formatter = "0.3.0"
 unicode-segmentation = "1.11.0"
 secrecy = { version = "0.8", features = ["serde"] }
-validator = "0.16.1"# we dont use 17 because it uses derive macro's
+validator = "0.16.1" # we dont use 17 because it uses derive macro's
 resend-email = "0.1.3"
 
 [dependencies.reqwest]
@@ -58,6 +61,7 @@ quickcheck_macros = "1.0.0"
 tokio = { version = "1.36", features = ["macros", "rt-multi-thread"] }
 wiremock = "0.6.0"
 serde_json = "1.0.114"
+linkify = "0.10.0"
 
 [target.x86_64-unknown-linux-gnu]
 rustflags = ["-C", "link-arg=-fuse-ld=lld"]

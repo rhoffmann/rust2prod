@@ -45,6 +45,7 @@ impl Application {
 
         Ok(Self { port, server })
     }
+
     pub fn port(&self) -> u16 {
         self.port
     }
