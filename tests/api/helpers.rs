@@ -1,4 +1,5 @@
 use once_cell::sync::Lazy;
+use reqwest::Url;
 use rust2prod::configuration::{get_configuration, DatabaseSettings};
 use rust2prod::startup::{get_connection_pool, Application};
 use rust2prod::telemetry::{get_subscriber, init_subscriber_once};
@@ -26,6 +27,11 @@ pub struct TestApplication {
     pub email_server: MockServer,
 }
 
+pub struct ConfirmationLinks {
+    pub html: reqwest::Url,
+    pub plain_text: reqwest::Url,
+}
+
 impl TestApplication {
     pub async fn post_subscriptions(&self, body: String) -> reqwest::Response {
         let client = reqwest::Client::new();
@@ -37,6 +43,30 @@ impl TestApplication {
             .send()
             .await
             .expect("Failed to execute request.")
+    }
+
+    pub fn get_confirmation_links(&self, email_request: &wiremock::Request) -> ConfirmationLinks {
+        // parse json
+        let body: serde_json::Value = serde_json::from_slice(&email_request.body).unwrap();
+
+        // extract link from one request field
+        let get_link = |s: &str| {
+            let links: Vec<_> = linkify::LinkFinder::new()
+                .links(s)
+                .filter(|l| *l.kind() == linkify::LinkKind::Url)
+                .collect();
+            assert_eq!(links.len(), 1);
+            let raw_link = links[0].as_str().to_owned();
+            let mut confirmation_link = Url::parse(&raw_link).expect("Failed to parse URL.");
+            assert_eq!(confirmation_link.host_str().unwrap(), "127.0.0.1");
+            confirmation_link.set_port(Some(self.port)).unwrap();
+            confirmation_link
+        };
+
+        let html = get_link(body["html"].as_str().unwrap());
+        let plain_text = get_link(body["text"].as_str().unwrap());
+
+        ConfirmationLinks { html, plain_text }
     }
 }
 
