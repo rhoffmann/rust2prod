@@ -7,6 +7,7 @@
 - if you want pretty logs, `cargo install bunyan` and pipe application or test through
   it (`cargo watch -x run | bunyan`)
 - remember to `DATABASE_URL=CONNECTIONSTRING sqlx migrate run` after changing the schema
+- `cargo sqlx prepare -- --lib` after updating schemas
 
 ## Run
 
