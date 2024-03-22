@@ -21,6 +21,7 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 
 pub struct TestApplication {
     pub address: String,
+    pub port: u16,
     pub connection_pool: PgPool,
     pub email_server: MockServer,
 }
@@ -60,6 +61,7 @@ pub async fn spawn_app() -> TestApplication {
         .await
         .expect("Failed to build application");
 
+    let application_port = application.port();
     let address = format!("http://127.0.0.1:{}", application.port());
 
     // drop the spawned future handle
@@ -69,6 +71,7 @@ pub async fn spawn_app() -> TestApplication {
         address,
         connection_pool: get_connection_pool(&configuration.database),
         email_server,
+        port: application_port,
     }
 }
 

@@ -25,7 +25,7 @@
 ## Using digital ocean
 
 - `doctl apps create --spec=spec.yaml`
-- `doctl apps list`
+- `doctl apps list --format ID`
 - `doctl apps update <app_id> --spec=spec.yaml`
 
 - migrate local

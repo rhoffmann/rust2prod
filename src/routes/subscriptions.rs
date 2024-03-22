@@ -1,5 +1,5 @@
-use crate::domain::*;
 use crate::email_client::EmailClient;
+use crate::{domain::*, startup::ApplicationBaseUrl};
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,7 @@ impl TryFrom<SubscribeFormData> for NewSubscriber {
 
 #[tracing::instrument(
     name = "Adding a new subscriber",
-    skip(form, pool, email_client),
+    skip(form, pool, email_client, base_url),
     fields(
         subscriber_email = %form.email,
         subscriber_name = %form.name
@@ -35,6 +35,7 @@ pub async fn subscribe(
     form: web::Form<SubscribeFormData>,
     pool: web::Data<PgPool>,
     email_client: web::Data<EmailClient>,
+    base_url: web::Data<ApplicationBaseUrl>,
 ) -> HttpResponse {
     // try_into here is a trait fn that is implemented by TryFrom for the NewSubscriber struct
     let new_subscriber = match form.0.try_into() {
@@ -46,24 +47,7 @@ pub async fn subscribe(
         return HttpResponse::InternalServerError().finish();
     }
 
-    let confirmation_link =
-        "https://some-random-domain-that-does-not-exist.com/subscriptions/confirm";
-
-    if email_client
-        .send_email(
-            new_subscriber.email,
-            "Welcome!",
-            &format!(
-                "Welcome to our newsletter!<br />\
-                Click <a href=\"{}\">here</a> to confirm your subscription.",
-                confirmation_link
-            ),
-            &format!(
-                "Welcome to our newsletter!\n\
-                Visit {} to confirm your subscription.",
-                confirmation_link
-            ),
-        )
+    if send_confirmation_email(&email_client, new_subscriber, &base_url.0)
         .await
         .is_err()
     {
@@ -71,6 +55,34 @@ pub async fn subscribe(
     }
 
     HttpResponse::Ok().finish()
+}
+
+#[tracing::instrument(
+    name = "Sending a confirmation email",
+    skip(email_client, new_subscriber, base_url)
+)]
+pub async fn send_confirmation_email(
+    email_client: &EmailClient,
+    new_subscriber: NewSubscriber,
+    base_url: &str,
+) -> Result<(), reqwest::Error> {
+    let confirmation_link = format!(
+        "{}/subscriptions/confirm?subscription_token=my-token",
+        base_url
+    );
+    let plain_body = format!(
+        "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
+        confirmation_link
+    );
+    let html_body = format!(
+        "Welcome to our newsletter!<br />\
+        Click <a href=\"{}\">here</a> to confirm your subscription.",
+        confirmation_link
+    );
+
+    email_client
+        .send_email(new_subscriber.email, "Welcome!", &html_body, &plain_body)
+        .await
 }
 
 #[tracing::instrument(
