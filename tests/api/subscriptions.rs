@@ -147,7 +147,7 @@ async fn subscribe_fails_if_there_is_a_database_error() {
     let body = "name=the%20boss&email=the_boss%40gmail.com";
 
     // sabotage database
-    sqlx::query!("ALTER TABLE subscription_tokens DROP COLUMN subscription_token;",)
+    sqlx::query!("ALTER TABLE subscriptions DROP COLUMN email;",)
         .execute(&app.connection_pool)
         .await
         .unwrap();
