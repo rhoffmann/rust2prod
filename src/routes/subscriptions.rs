@@ -1,4 +1,5 @@
 use crate::email_client::EmailClient;
+use crate::errors::error_chain_fmt;
 use crate::{domain::*, startup::ApplicationBaseUrl};
 use actix_web::{web, HttpResponse, ResponseError};
 use anyhow::Context;
@@ -7,19 +8,6 @@ use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 use sqlx::{Executor, PgPool, Postgres, Transaction};
 use uuid::Uuid;
-
-fn error_chain_fmt(
-    e: &impl std::error::Error,
-    f: &mut std::fmt::Formatter<'_>,
-) -> std::fmt::Result {
-    writeln!(f, "{}", e)?;
-    let mut source = e.source();
-    while let Some(e) = source {
-        writeln!(f, "Caused by: {}", e)?;
-        source = e.source();
-    }
-    Ok(())
-}
 
 #[derive(thiserror::Error)]
 pub enum SubscribeError {
