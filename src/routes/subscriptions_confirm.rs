@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{web, HttpResponse, ResponseError};
 use anyhow::Context;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -21,6 +21,15 @@ pub enum ConfirmError {
 impl std::fmt::Debug for ConfirmError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         error_chain_fmt(self, f)
+    }
+}
+
+impl ResponseError for ConfirmError {
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        match self {
+            ConfirmError::UnauthorizedError() => actix_web::http::StatusCode::UNAUTHORIZED,
+            ConfirmError::UnexpectedError(_) => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
+        }
     }
 }
 
