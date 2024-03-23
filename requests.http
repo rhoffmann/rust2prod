@@ -15,7 +15,3 @@ name=richard%20hoffmann
 ###
 
 GET http://localhost:8000/subscriptions
-
-###
-
-GET http://localhost:8000/greet/Richard

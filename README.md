@@ -29,5 +29,6 @@ Fresh set up:
 - `cargo sqlx prepare -- --lib` after updating schemas and commit that to gh
 - `doctl apps create --spec=spec.yaml`
 - set up env var with email client token: `APP_EMAIL_CLIENT__AUTHORIZATION_TOKEN=<secret>`
+- you need to temporarily remove trusted sources from DB settings to remotely access the database e.g. for migration or remote debugging with client, or set up a trusted source firewall rule if you are using a cluster https://docs.digitalocean.com/products/databases/postgresql/how-to/secure/#firewalls
 - `doctl apps list --format ID`
 - `doctl apps update <app_id> --spec=spec.yaml`

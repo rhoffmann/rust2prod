@@ -83,9 +83,6 @@ pub fn run(
             .app_data(connection_pool.clone())
             .app_data(email_client.clone())
             .app_data(base_url.clone())
-            // .route("/{filename:.*}", web::get().to(static_files))
-            .route("/greet", web::get().to(greet))
-            .route("/greet/{name}", web::get().to(greet))
             // GET health_check
             .route("/health_check", web::get().to(health_check))
             // POST subscriptions
