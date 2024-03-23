@@ -140,3 +140,21 @@ async fn subscribe_sends_a_confirmation_email_with_a_link() {
 
     assert_eq!(confirmation_links.html, confirmation_links.plain_text);
 }
+
+#[tokio::test]
+async fn subscribe_fails_if_there_is_a_database_error() {
+    let app = spawn_app().await;
+    let body = "name=the%20boss&email=the_boss%40gmail.com";
+
+    // sabotage database
+    sqlx::query!("ALTER TABLE subscription_tokens DROP COLUMN subscription_token;",)
+        .execute(&app.connection_pool)
+        .await
+        .unwrap();
+
+    // act
+    let response = app.post_subscriptions(body.into()).await;
+
+    // assert
+    assert_eq!(500, response.status().as_u16());
+}

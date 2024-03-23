@@ -14,7 +14,8 @@
 
 ## Test
 
-`TEST_LOG=true cargo test [testcase]`
+- `TEST_LOG=true cargo test [testcase]`
+- debugging sqlx: `export RUST_LOG="sqlx=error,info"`
 
 ### TODOs
 
