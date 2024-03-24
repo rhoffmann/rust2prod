@@ -91,6 +91,8 @@ pub fn run(
             .route("/subscriptions/confirm", web::get().to(confirm))
             // GET subscriptions
             .route("/subscriptions", web::get().to(get_all_subscribers))
+            // POST newsletters
+            .route("/newsletters", web::post().to(publish_newsletter))
             // serve static files
             .service(
                 fs::Files::new("/", "./static")
