@@ -26,12 +26,7 @@ async fn newsletters_are_not_delivered_to_unconfirmed_subscribers() {
         }
     });
 
-    let response = reqwest::Client::new()
-        .post(&format!("{}/newsletters", app.address))
-        .json(&newsletter_request_body)
-        .send()
-        .await
-        .expect("Failed to execute request.");
+    let response = app.post_newsletters(newsletter_request_body).await;
 
     // assert
     assert_eq!(200, response.status().as_u16());
@@ -60,16 +55,39 @@ async fn newsletters_are_delivered_to_confirmed_subscribers() {
         }
     });
 
-    let response = reqwest::Client::new()
-        .post(&format!("{}/newsletters", app.address))
-        .json(&newsletter_request_body)
-        .send()
-        .await
-        .expect("Failed to execute request.");
+    let response = app.post_newsletters(newsletter_request_body).await;
 
     assert_eq!(200, response.status().as_u16());
 
     // remember mock is asserted on drop (that the request POST /emails was made successfully -> email has been sent)
+}
+
+#[tokio::test]
+async fn newsletters_return_400_for_invalid_data() {
+    let app = spawn_app().await;
+    let test_cases = vec![
+        (serde_json::json!({}), "missing title and content"),
+        (serde_json::json!({"title": "title"}), "missing content"),
+        (
+            serde_json::json!({"content": {"text": "text"}}),
+            "missing title",
+        ),
+        (
+            serde_json::json!({"title": "title", "content": {}}),
+            "empty content",
+        ),
+    ];
+
+    for (test_case, error_message) in test_cases {
+        let response = app.post_newsletters(test_case).await;
+
+        assert_eq!(
+            400,
+            response.status().as_u16(),
+            "API did not fail with 400 with payload {}.",
+            error_message
+        );
+    }
 }
 
 async fn create_confirmed_subscriber(app: &TestApplication) {
