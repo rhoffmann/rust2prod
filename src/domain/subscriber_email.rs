@@ -1,3 +1,5 @@
+use std::fmt::Formatter;
+
 use validator::validate_email;
 #[derive(Debug)]
 pub struct SubscriberEmail(String);
@@ -9,6 +11,12 @@ impl SubscriberEmail {
             true => Ok(Self(email)),
             false => Err(format!("Invalid email: {}", email)),
         }
+    }
+}
+
+impl std::fmt::Display for SubscriberEmail {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
 
@@ -37,7 +45,6 @@ mod tests {
             Self(email)
         }
     }
-
 
     #[quickcheck_macros::quickcheck]
     fn valid_email_is_accepted(valid_email: ValidEmailFixture) -> bool {
