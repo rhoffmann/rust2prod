@@ -48,10 +48,12 @@ impl TestApplication {
     pub async fn post_newsletters(&self, body: serde_json::Value) -> reqwest::Response {
         let client = reqwest::Client::new();
 
+        let (username, password) = self.test_user().await;
+
         client
             .post(&format!("{}/newsletters", &self.address))
             .header("Content-Type", "application/json")
-            .basic_auth(Uuid::new_v4().to_string(), Some(Uuid::new_v4().to_string()))
+            .basic_auth(username, Some(password))
             .body(body.to_string())
             .send()
             .await
@@ -80,6 +82,15 @@ impl TestApplication {
         let plain_text = get_link(body["text"].as_str().unwrap());
 
         ConfirmationLinks { html, plain_text }
+    }
+
+    pub async fn test_user(&self) -> (String, String) {
+        let row = sqlx::query!("SELECT username, password FROM users LIMIT 1")
+            .fetch_one(&self.connection_pool)
+            .await
+            .expect("Failed to fetch test user from database.");
+
+        (row.username, row.password)
     }
 }
 
@@ -110,12 +121,29 @@ pub async fn spawn_app() -> TestApplication {
     // drop the spawned future handle
     let _ = tokio::spawn(application.run_until_stopped());
 
-    TestApplication {
+    let test_app = TestApplication {
         address,
         connection_pool: get_connection_pool(&configuration.database),
         email_server,
         port: application_port,
-    }
+    };
+
+    add_test_users(&test_app.connection_pool).await;
+
+    test_app
+}
+
+async fn add_test_users(pool: &PgPool) {
+    sqlx::query!(
+        "INSERT INTO users (user_id, username, password)
+        VALUES ($1, $2, $3)",
+        Uuid::new_v4(),
+        Uuid::new_v4().to_string(),
+        Uuid::new_v4().to_string()
+    )
+    .execute(pool)
+    .await
+    .expect("Failed to insert test user into database.");
 }
 
 async fn configure_database(config: &DatabaseSettings) -> PgPool {
