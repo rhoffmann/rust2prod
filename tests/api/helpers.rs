@@ -51,6 +51,7 @@ impl TestApplication {
         client
             .post(&format!("{}/newsletters", &self.address))
             .header("Content-Type", "application/json")
+            .basic_auth(Uuid::new_v4().to_string(), Some(Uuid::new_v4().to_string()))
             .body(body.to_string())
             .send()
             .await

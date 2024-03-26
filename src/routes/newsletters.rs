@@ -80,6 +80,7 @@ impl ResponseError for PublishError {
     // no need for status_code() anymore, default error_response will take care of that
 }
 
+#[allow(dead_code)]
 struct Credentials {
     username: String,
     password: Secret<String>,
