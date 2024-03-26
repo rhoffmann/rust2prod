@@ -90,6 +90,33 @@ async fn newsletters_return_400_for_invalid_data() {
     }
 }
 
+#[tokio::test]
+async fn request_missing_authorization_are_rejected() {
+    let app = spawn_app().await;
+
+    let newsletter_request_body = serde_json::json!({
+        "title": "newsletter title",
+        "content": {
+            "text": "Newsletter content",
+            "html": "<h1>Newsletter content</h1>"
+        }
+    });
+
+    let response = reqwest::Client::new()
+        .post(&format!("{}/newsletters", &app.address))
+        .header("Content-Type", "application/json")
+        .body(newsletter_request_body.to_string())
+        .send()
+        .await
+        .expect("Failed to execute request.");
+
+    assert_eq!(response.status().as_u16(), 401);
+    assert_eq!(
+        r#"Basic realm="publish""#,
+        response.headers()["www-authenticate"]
+    );
+}
+
 async fn create_confirmed_subscriber(app: &TestApplication) {
     let confirmation_links = create_unconfirmed_subscriber(app).await;
 
