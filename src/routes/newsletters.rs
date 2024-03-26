@@ -1,3 +1,4 @@
+use crate::telemetry::spawn_blocking_with_tracing;
 use crate::{domain::SubscriberEmail, email_client::EmailClient, errors::error_chain_fmt};
 use actix_web::http::header::{HeaderMap, HeaderValue};
 use actix_web::http::{header, StatusCode};
@@ -134,7 +135,7 @@ async fn validate_credentials(
         .map_err(PublishError::UnexpectedError)?
         .ok_or_else(|| PublishError::AuthError(anyhow::anyhow!("Invalid username or password.")))?;
 
-    tokio::task::spawn_blocking(move || {
+    spawn_blocking_with_tracing(move || {
         verify_password_hash(expected_password_hash, credentials.password)
     })
     .await
