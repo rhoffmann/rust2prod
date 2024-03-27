@@ -1,9 +1,70 @@
+use uuid::Uuid;
 use wiremock::{
     matchers::{any, method, path},
     Mock, ResponseTemplate,
 };
 
 use crate::helpers::{spawn_app, ConfirmationLinks, TestApplication};
+
+#[tokio::test]
+async fn non_existing_user_is_rejected() {
+    let app = spawn_app().await;
+
+    let username = Uuid::new_v4().to_string();
+    let password = Uuid::new_v4().to_string();
+
+    let response = reqwest::Client::new()
+        .post(&format!("{}/newsletters", &app.address))
+        .basic_auth(&username, Some(&password))
+        .header("Content-Type", "application/json")
+        .json(&serde_json::json!({
+            "title": "newsletter title",
+            "content": {
+                "text": "Newsletter content",
+                "html": "<h1>Newsletter content</h1>"
+            }
+        }))
+        .send()
+        .await
+        .expect("Failed to execute request.");
+
+    // random users should not pass the basic auth
+    assert_eq!(401, response.status().as_u16());
+    assert_eq!(
+        r#"Basic realm="publish""#,
+        response.headers()["www-authenticate"]
+    );
+}
+
+#[tokio::test]
+async fn invalid_password_is_rejected() {
+    let app = spawn_app().await;
+    let test_user = app.test_user;
+    let password = Uuid::new_v4().to_string();
+
+    assert_ne!(test_user.password, password);
+
+    let response = reqwest::Client::new()
+        .post(&format!("{}/newsletters", &app.address))
+        .basic_auth(&test_user.username, Some(&password))
+        .header("Content-Type", "application/json")
+        .json(&serde_json::json!({
+            "title": "newsletter title",
+            "content": {
+                "text": "Newsletter content",
+                "html": "<h1>Newsletter content</h1>"
+            }
+        }))
+        .send()
+        .await
+        .expect("Failed to execute request.");
+
+    assert_eq!(401, response.status().as_u16());
+    assert_eq!(
+        r#"Basic realm="publish""#,
+        response.headers()["www-authenticate"]
+    );
+}
 
 #[tokio::test]
 async fn newsletters_are_not_delivered_to_unconfirmed_subscribers() {
