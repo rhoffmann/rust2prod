@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="h-full bg-white" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>rust2prod</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <title>{{ title }}</title>
     <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+    <!-- <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -22,12 +22,13 @@
                 content-visibility: auto;
             }
         }
-    </style>
+    </style> -->
+    <link href="./styles.css" rel="stylesheet">
 </head>
-<body class="bg-amber-100 p-4">
+<body class="h-full p-4">
     <h1 class="text-3xl mb-4">rust2prod</h1>
     <div class="content-auto p-4 bg-slate-700 rounded">
-        <p class="text-badass">This is a test</p>
+        {{ body }}
     </div>
 </body>
 </html>

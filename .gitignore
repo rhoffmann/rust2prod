@@ -2,3 +2,4 @@
 .env.local
 .vscode
 .idea
+node_modules
