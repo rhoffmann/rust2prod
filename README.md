@@ -7,10 +7,12 @@
 - if you want pretty logs, `cargo install bunyan` and pipe application or test through
   it (`cargo watch -x run | bunyan`)
 - remember to `DATABASE_URL=CONNECTIONSTRING sqlx migrate run` after changing the schema
+- `npm install`
 
 ## Run
 
-`cargo watch -x run`
+- `npm start` (we currently use tailwind to generate classes on the fly)
+- `cargo watch -x run`
 
 ## Test
 
@@ -19,6 +21,7 @@
 
 ### TODOs
 
+- [ ] auto-build frontend assets in docker (currently we have to build it manually and commit it in the repo)
 - [ ] add opentelemetry and send to [honeycomb](https://honeycomb.io) or [jaeger](https://www.jaegertracing.io/) (
       see [tracing-opentelemetry](https://docs.rs/tracing-opentelemetry/latest/tracing_opentelemetry/index.html))
 - [ ] minimize docker image size wth [rust-musl-bilder](https://github.com/emk/rust-musl-builder)
