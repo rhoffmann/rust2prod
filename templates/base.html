@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="h-full bg-white" lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>{% block title %}{{ title }} - rust2prod{% endblock %}</title>
+    <script
+      src="https://unpkg.com/htmx.org@1.9.10"
+      integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
+      crossorigin="anonymous"
+    ></script>
+    <link href="./styles.css" rel="stylesheet" />
+    {% block head %}{% endblock %}
+  </head>
+  <body class="h-full p-4">
+    <div id="content" class="content-auto p-4 bg-slate-700 text-white rounded">
+      {% block content %}
+      <p>Replace me</p>
+      {% endblock %}
+    </div>
+  </body>
+</html>

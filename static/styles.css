@@ -554,8 +554,8 @@ video {
   --tw-contain-style:  ;
 }
 
-.mb-4 {
-  margin-bottom: 1rem;
+.block {
+  display: block;
 }
 
 .h-full {
@@ -578,11 +578,6 @@ video {
 
 .p-4 {
   padding: 1rem;
-}
-
-.text-3xl {
-  font-size: 1.875rem;
-  line-height: 2.25rem;
 }
 
 .text-xl {
