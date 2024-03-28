@@ -15,3 +15,8 @@ pub async fn home() -> HttpResponse {
     };
     HttpResponse::Ok().body(home.render().unwrap())
 }
+
+// returns html fragment
+pub async fn login() -> HttpResponse {
+    HttpResponse::Ok().body(include_str!("fragments/login_success.htmx"))
+}

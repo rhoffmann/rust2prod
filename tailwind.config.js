@@ -2,7 +2,10 @@
 module.exports = {
   content: {
     relative: true,
-    files: ["./templates/**/*.{html,js}", "./src/routes/**/*.{html,js}"],
+    files: [
+      "./templates/**/*.{html,htmx,js,ts}",
+      "./src/routes/**/*.{html,htmx,js,ts}",
+    ],
   },
   theme: {
     extend: {},
