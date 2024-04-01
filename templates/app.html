@@ -8,8 +8,9 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="flex h-16 items-center justify-between">
         <div class="flex items-center">
-          <div class="flex-shrink-0">
+          <div class="flex-shrink-0 inline-flex items-center">
             <img class="h-8 w-9" class="fill-white" src="./images/logoipsum-280.svg" alt="richnet">
+            <span class="ml-1 text-md font-medium text-amber-500">rich<span class="text-white">net</span><span class="text-xs text-gray-500">.guru</span></span>
           </div>
           {% match user %}
             {% when Some with (user_name) %}

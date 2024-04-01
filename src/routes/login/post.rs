@@ -1,14 +1,40 @@
-use actix_web::{web, HttpResponse};
-
+use actix_web::{web, HttpResponse, ResponseError};
+use reqwest::StatusCode;
 use secrecy::Secret;
 use sqlx::PgPool;
 
-use crate::authentication::{validate_credentials, Credentials};
+use crate::{
+    authentication::{validate_credentials, AuthError, Credentials},
+    errors::error_chain_fmt,
+};
 
 #[derive(serde::Deserialize)]
 pub struct LoginData {
     pub email: String,
     pub password: Secret<String>,
+}
+
+#[derive(thiserror::Error)]
+pub enum LoginError {
+    #[error("Authentication failed")]
+    AuthError(#[source] anyhow::Error),
+    #[error("Unexpected error occurred")]
+    UnexpectedError(#[from] anyhow::Error),
+}
+
+impl std::fmt::Debug for LoginError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
+impl ResponseError for LoginError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::AuthError(_) => StatusCode::UNAUTHORIZED,
+            Self::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
 }
 
 // returns htmx fragment
@@ -17,7 +43,10 @@ pub struct LoginData {
     skip(form, pool),
     fields(username=tracing::field::Empty, email=tracing::field::Empty)
 )]
-pub async fn login_post(form: web::Form<LoginData>, pool: web::Data<PgPool>) -> HttpResponse {
+pub async fn login_post(
+    form: web::Form<LoginData>,
+    pool: web::Data<PgPool>,
+) -> Result<HttpResponse, LoginError> {
     let credentials = Credentials {
         username: form.0.email,
         password: form.0.password,
@@ -25,14 +54,16 @@ pub async fn login_post(form: web::Form<LoginData>, pool: web::Data<PgPool>) -> 
 
     tracing::Span::current().record("username", &tracing::field::display(&credentials.username));
 
-    match validate_credentials(credentials, &pool).await {
-        Ok(user_id) => {
-            tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
-            HttpResponse::SeeOther()
-                // .insert_header((LOCATION, "/")) // use this if you want to redirect to the root path
-                .insert_header(("HX-Redirect", "/"))
-                .finish()
-        }
-        Err(_) => HttpResponse::Unauthorized().finish(), // TODO: add error message w/ htmx fragment OR redirect to login page / or just return 401
-    }
+    let user_id = validate_credentials(credentials, &pool)
+        .await
+        .map_err(|e| match e {
+            AuthError::InvalidCredentials(_) => LoginError::AuthError(e.into()),
+            AuthError::UnexpectedError(_) => LoginError::UnexpectedError(e.into()),
+        })?;
+
+    tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
+
+    Ok(HttpResponse::SeeOther()
+        .insert_header(("HX-Redirect", "/"))
+        .finish())
 }
