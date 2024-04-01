@@ -85,8 +85,8 @@ pub fn run(
             .app_data(base_url.clone())
             // home
             .route("/", web::get().to(home))
-            .route("/login", web::get().to(login))
-            .route("/login", web::post().to(post_login))
+            .route("/login", web::get().to(login_form))
+            .route("/login", web::post().to(login_post_fragment))
             // GET health_check
             .route("/health_check", web::get().to(health_check))
             // POST subscriptions
