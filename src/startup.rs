@@ -86,7 +86,7 @@ pub fn run(
             // home
             .route("/", web::get().to(home))
             .route("/login", web::get().to(login_form))
-            .route("/login", web::post().to(login_post_fragment))
+            .route("/login", web::post().to(login_post))
             // GET health_check
             .route("/health_check", web::get().to(health_check))
             // POST subscriptions
