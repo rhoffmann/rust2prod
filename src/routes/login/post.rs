@@ -1,4 +1,5 @@
-use actix_web::{web, HttpResponse, ResponseError};
+use actix_web::{http::header::ContentType, web, HttpResponse, ResponseError};
+use hmac::{Hmac, Mac};
 use reqwest::StatusCode;
 use secrecy::Secret;
 use sqlx::PgPool;
@@ -31,9 +32,34 @@ impl std::fmt::Debug for LoginError {
 impl ResponseError for LoginError {
     fn status_code(&self) -> StatusCode {
         match self {
-            Self::AuthError(_) => StatusCode::UNAUTHORIZED,
-            Self::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::AuthError(_) => StatusCode::OK, // or StatusCode::UNAUTHORIZED when serving full pages
+            Self::UnexpectedError(_) => StatusCode::OK, // or StatusCode::INTERNAL_SERVER_ERROR when serving full pages
         }
+    }
+
+    fn error_response(&self) -> HttpResponse {
+        let secret: &[u8] = "super secret!".as_bytes();
+        let error_message = match self {
+            Self::AuthError(_) => "Invalid credentials".to_string(),
+            Self::UnexpectedError(_) => "Unexpected error occurred".to_string(),
+        };
+
+        let hmac_tag = {
+            let mut mac = Hmac::<sha2::Sha256>::new_from_slice(secret).unwrap();
+            mac.update(error_message.as_bytes());
+            mac.finalize().into_bytes()
+        };
+
+        let response_fragment = format!(
+            include_str!("fragments/login_error.htmx.html"),
+            error_message
+        );
+
+        HttpResponse::build(self.status_code())
+            .insert_header(("hmac-tag", format!("{hmac_tag:x}")))
+            .insert_header(("error-message", error_message))
+            .content_type(ContentType::html())
+            .body(response_fragment)
     }
 }
 
