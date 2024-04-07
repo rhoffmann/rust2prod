@@ -1,12 +1,12 @@
-use actix_web::{http::header::ContentType, web, HttpResponse, ResponseError};
+use actix_web::{error::InternalError, http::header::ContentType, web, HttpResponse};
 use hmac::{Hmac, Mac};
-use reqwest::StatusCode;
-use secrecy::Secret;
+use secrecy::{ExposeSecret, Secret};
 use sqlx::PgPool;
 
 use crate::{
     authentication::{validate_credentials, AuthError, Credentials},
     errors::error_chain_fmt,
+    startup::HmacSecret,
 };
 
 #[derive(serde::Deserialize)]
@@ -29,50 +29,17 @@ impl std::fmt::Debug for LoginError {
     }
 }
 
-impl ResponseError for LoginError {
-    fn status_code(&self) -> StatusCode {
-        match self {
-            Self::AuthError(_) => StatusCode::OK, // or StatusCode::UNAUTHORIZED when serving full pages
-            Self::UnexpectedError(_) => StatusCode::OK, // or StatusCode::INTERNAL_SERVER_ERROR when serving full pages
-        }
-    }
-
-    fn error_response(&self) -> HttpResponse {
-        let secret: &[u8] = "super secret!".as_bytes();
-        let error_message = match self {
-            Self::AuthError(_) => "Invalid credentials".to_string(),
-            Self::UnexpectedError(_) => "Unexpected error occurred".to_string(),
-        };
-
-        let hmac_tag = {
-            let mut mac = Hmac::<sha2::Sha256>::new_from_slice(secret).unwrap();
-            mac.update(error_message.as_bytes());
-            mac.finalize().into_bytes()
-        };
-
-        let response_fragment = format!(
-            include_str!("fragments/login_error.htmx.html"),
-            error_message
-        );
-
-        HttpResponse::build(self.status_code())
-            .insert_header(("hmac-tag", format!("{hmac_tag:x}")))
-            .insert_header(("error-message", error_message))
-            .content_type(ContentType::html())
-            .body(response_fragment)
-    }
-}
-
 // returns htmx fragment
 #[tracing::instrument(
     name = "Login",
-    skip(form, pool),
+    skip(form, pool, secret),
     fields(username=tracing::field::Empty, email=tracing::field::Empty)
 )]
 pub async fn login_post(
     form: web::Form<LoginData>,
     pool: web::Data<PgPool>,
-) -> Result<HttpResponse, LoginError> {
+    secret: web::Data<HmacSecret>,
+) -> Result<HttpResponse, InternalError<LoginError>> {
     let credentials = Credentials {
         username: form.0.email,
         password: form.0.password,
@@ -80,16 +47,47 @@ pub async fn login_post(
 
     tracing::Span::current().record("username", &tracing::field::display(&credentials.username));
 
-    let user_id = validate_credentials(credentials, &pool)
-        .await
-        .map_err(|e| match e {
-            AuthError::InvalidCredentials(_) => LoginError::AuthError(e.into()),
-            AuthError::UnexpectedError(_) => LoginError::UnexpectedError(e.into()),
-        })?;
+    match validate_credentials(credentials, &pool).await {
+        Ok(user_id) => {
+            tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
 
-    tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
+            Ok(HttpResponse::SeeOther()
+                .insert_header(("HX-Redirect", "/"))
+                .finish())
+        }
+        Err(e) => {
+            let e = match e {
+                AuthError::InvalidCredentials(_) => LoginError::AuthError(e.into()),
+                AuthError::UnexpectedError(_) => LoginError::UnexpectedError(e.into()),
+            };
 
-    Ok(HttpResponse::SeeOther()
-        .insert_header(("HX-Redirect", "/"))
-        .finish())
+            let error_message = match e {
+                LoginError::AuthError(_) => "Invalid credentials".to_string(),
+                LoginError::UnexpectedError(_) => "An unexpected error occurred".to_string(),
+            };
+
+            let hmac_tag = {
+                let mut mac =
+                    Hmac::<sha2::Sha256>::new_from_slice(secret.0.expose_secret().as_bytes())
+                        .unwrap();
+                mac.update(error_message.as_bytes());
+                mac.finalize().into_bytes()
+            };
+
+            // simple pass-in error message to the fragment (could go for askama template here as well)
+            let response_fragment = format!(
+                include_str!("fragments/login_error.htmx.html"),
+                error_message
+            );
+
+            // diverging from the book here, we return a 200 OK response with the error message in the body
+            let response = HttpResponse::Ok()
+                .insert_header(("hmac-tag", format!("{hmac_tag:x}")))
+                .insert_header(("error-message", error_message))
+                .content_type(ContentType::html())
+                .body(response_fragment);
+
+            Err(InternalError::from_response(e, response))
+        }
+    }
 }
