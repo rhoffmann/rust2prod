@@ -9,6 +9,13 @@
       crossorigin="anonymous"
     ></script>
     <script>
+      htmx.on('htmx:beforeSwap', function(evt) {
+        // allow the form to be swapped in case of validation errors (or teapots)
+        if (evt.detail.xhr.status === 422 || evt.detail.xhr.status === 418) {
+          evt.detail.shouldSwap = true;
+          evt.detail.isError = false;
+        }
+      });
         // htmx.logAll();
     </script>
     <link href="./styles.css" rel="stylesheet" />

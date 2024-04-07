@@ -1,4 +1,4 @@
-use actix_web::{error::InternalError, http::header::ContentType, web, HttpResponse};
+use actix_web::{error::InternalError, http::header, http::header::ContentType, web, HttpResponse};
 use hmac::{Hmac, Mac};
 use secrecy::{ExposeSecret, Secret};
 use sqlx::PgPool;
@@ -51,19 +51,21 @@ pub async fn login_post(
         Ok(user_id) => {
             tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
 
+            // user is authenticated, redirect to home page
             Ok(HttpResponse::SeeOther()
                 .insert_header(("HX-Redirect", "/"))
                 .finish())
         }
         Err(e) => {
-            let e = match e {
-                AuthError::InvalidCredentials(_) => LoginError::AuthError(e.into()),
-                AuthError::UnexpectedError(_) => LoginError::UnexpectedError(e.into()),
-            };
-
-            let error_message = match e {
-                LoginError::AuthError(_) => "Invalid credentials".to_string(),
-                LoginError::UnexpectedError(_) => "An unexpected error occurred".to_string(),
+            let (error_message, e) = match e {
+                AuthError::InvalidCredentials(_) => (
+                    "Invalid credentials".to_string(),
+                    LoginError::AuthError(e.into()),
+                ),
+                AuthError::UnexpectedError(_) => (
+                    "An unexpected error occurred".to_string(),
+                    LoginError::UnexpectedError(e.into()),
+                ),
             };
 
             let hmac_tag = {
@@ -74,19 +76,31 @@ pub async fn login_post(
                 mac.finalize().into_bytes()
             };
 
-            // simple pass-in error message to the fragment (could go for askama template here as well)
-            let response_fragment = format!(
-                include_str!("fragments/login_error.htmx.html"),
-                error_message
-            );
-
-            // we return a 200 OK response with the error message in the body to allow
-            // htmx to replace the form with the error message fragment
-            let response = HttpResponse::Ok()
-                .insert_header(("hmac-tag", format!("{hmac_tag:x}")))
-                .insert_header(("error-message", error_message))
-                .content_type(ContentType::html())
-                .body(response_fragment);
+            let response = match e {
+                // invalid credentials, show error message in the fragment
+                LoginError::AuthError(_) => {
+                    // simple pass-in error message to the fragment (could go for askama template here as well)
+                    let response_fragment = format!(
+                        include_str!("fragments/login_error.htmx.html"),
+                        error_message
+                    );
+                    // 422 unprocessable entity would be more appropriate, but we want to show the error message
+                    // 418 I'm a teapot is a fun status code to use for this purpose
+                    // htmx needs to be configured to allow successfull swap for the response type
+                    HttpResponse::ImATeapot()
+                        .insert_header(("hmac-tag", format!("{hmac_tag:x}")))
+                        .insert_header(("error-message", error_message))
+                        .content_type(ContentType::html())
+                        .body(response_fragment)
+                }
+                // unexpected error, redirect to login page
+                LoginError::UnexpectedError(_) => HttpResponse::SeeOther()
+                    .insert_header((header::LOCATION, "/login"))
+                    .insert_header(("HX-Redirect", "/"))
+                    .insert_header(("hmac-tag", format!("{hmac_tag:x}")))
+                    .insert_header(("error-message", error_message))
+                    .finish(),
+            };
 
             Err(InternalError::from_response(e, response))
         }

@@ -36,6 +36,21 @@ pub struct ConfirmationLinks {
 }
 
 impl TestApplication {
+    pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .unwrap()
+            .post(&format!("{}/login", &self.address))
+            .form(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
     pub async fn post_subscriptions(&self, body: String) -> reqwest::Response {
         let client = reqwest::Client::new();
 
@@ -84,15 +99,6 @@ impl TestApplication {
 
         ConfirmationLinks { html, plain_text }
     }
-
-    // pub async fn test_user(&self) -> (String, String) {
-    //     let row = sqlx::query!("SELECT username, password_hash FROM users LIMIT 1")
-    //         .fetch_one(&self.connection_pool)
-    //         .await
-    //         .expect("Failed to fetch test user from database.");
-
-    //     (row.username, row.password)
-    // }
 }
 
 /// Spin up instance of the application
@@ -195,4 +201,16 @@ impl TestUser {
         .await
         .expect("Failed to insert test user into database.");
     }
+}
+
+pub fn assert_is_redirect_to(response: &reqwest::Response, location: &str) {
+    assert_eq!(response.status().as_u16(), 303);
+
+    response
+        .headers()
+        .get("HX-Location")
+        .or(response.headers().get("Location"))
+        .unwrap();
+
+    assert_eq!(response.headers().get("Location").unwrap(), location);
 }
