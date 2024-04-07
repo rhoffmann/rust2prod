@@ -80,7 +80,8 @@ pub async fn login_post(
                 error_message
             );
 
-            // diverging from the book here, we return a 200 OK response with the error message in the body
+            // we return a 200 OK response with the error message in the body to allow
+            // htmx to replace the form with the error message fragment
             let response = HttpResponse::Ok()
                 .insert_header(("hmac-tag", format!("{hmac_tag:x}")))
                 .insert_header(("error-message", error_message))
