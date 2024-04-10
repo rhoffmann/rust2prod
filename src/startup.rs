@@ -4,7 +4,6 @@ use crate::configuration::{DatabaseSettings, Settings};
 use crate::email_client::EmailClient;
 use actix_files as fs;
 use actix_web::{dev::Server, web, App, HttpServer};
-use secrecy::Secret;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use tracing_actix_web::TracingLogger;

@@ -1,7 +1,7 @@
 use actix_web::{http::header::ContentType, HttpRequest, HttpResponse};
 use askama::Template;
 
-use super::AuthLayout;
+use super::{AuthLayout, LoginPage};
 
 pub async fn login_form(request: HttpRequest) -> HttpResponse {
     // if the login page is openend directly with a flash cookie, we need to display it as an error message
@@ -16,10 +16,13 @@ pub async fn login_form(request: HttpRequest) -> HttpResponse {
         }
     };
 
+    let page = LoginPage {
+        error_message: &error_html,
+    };
+
     let login = AuthLayout {
         title: "Login",
-        error_message: &error_html,
-        body: include_str!("login.html"),
+        body: &page.render().unwrap(),
     };
 
     HttpResponse::Ok()
