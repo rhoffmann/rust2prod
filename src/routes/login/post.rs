@@ -1,12 +1,15 @@
-use actix_web::{error::InternalError, http::header, http::header::ContentType, web, HttpResponse};
-use hmac::{Hmac, Mac};
-use secrecy::{ExposeSecret, Secret};
+use actix_web::{
+    cookie::Cookie,
+    error::InternalError,
+    http::header::{self, ContentType},
+    web, HttpResponse,
+};
+use secrecy::Secret;
 use sqlx::PgPool;
 
 use crate::{
     authentication::{validate_credentials, AuthError, Credentials},
     errors::error_chain_fmt,
-    startup::HmacSecret,
 };
 
 #[derive(serde::Deserialize)]
@@ -32,13 +35,12 @@ impl std::fmt::Debug for LoginError {
 // returns htmx fragment
 #[tracing::instrument(
     name = "Login",
-    skip(form, pool, secret),
+    skip(form, pool),
     fields(username=tracing::field::Empty, email=tracing::field::Empty)
 )]
 pub async fn login_post(
     form: web::Form<LoginData>,
     pool: web::Data<PgPool>,
-    secret: web::Data<HmacSecret>,
 ) -> Result<HttpResponse, InternalError<LoginError>> {
     let credentials = Credentials {
         username: form.0.email,
@@ -68,28 +70,19 @@ pub async fn login_post(
                 ),
             };
 
-            let hmac_tag = {
-                let mut mac =
-                    Hmac::<sha2::Sha256>::new_from_slice(secret.0.expose_secret().as_bytes())
-                        .unwrap();
-                mac.update(error_message.as_bytes());
-                mac.finalize().into_bytes()
-            };
-
             let response = match e {
                 // invalid credentials, show error message in the fragment
                 LoginError::AuthError(_) => {
                     // simple pass-in error message to the fragment (could go for askama template here as well)
                     let response_fragment = format!(
                         include_str!("fragments/login_error.htmx.html"),
-                        error_message
+                        &error_message
                     );
                     // 422 unprocessable entity would be more appropriate, but we want to show the error message
                     // 418 I'm a teapot is a fun status code to use for this purpose
                     // htmx needs to be configured to allow successfull swap for the response type
                     HttpResponse::ImATeapot()
-                        .insert_header(("hmac-tag", format!("{hmac_tag:x}")))
-                        .insert_header(("error-message", error_message))
+                        .cookie(Cookie::new("_flash", error_message))
                         .content_type(ContentType::html())
                         .body(response_fragment)
                 }
@@ -97,8 +90,7 @@ pub async fn login_post(
                 LoginError::UnexpectedError(_) => HttpResponse::SeeOther()
                     .insert_header((header::LOCATION, "/login"))
                     .insert_header(("HX-Redirect", "/"))
-                    .insert_header(("hmac-tag", format!("{hmac_tag:x}")))
-                    .insert_header(("error-message", error_message))
+                    .cookie(Cookie::new("_flash", error_message))
                     .finish(),
             };
 

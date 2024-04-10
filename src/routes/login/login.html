@@ -5,7 +5,7 @@
   </div>
 
   <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-    <div id="login-messages"></div>
+    <div id="login-messages">{{ error_message }}</div>
     <form id="login-form" hx-trigger="submit" hx-post="/login" hx-target="#login-messages" class="space-y-6">
       <div>
         <label for="email" class="block text-sm font-medium leading-6 text-white">Email address</label>

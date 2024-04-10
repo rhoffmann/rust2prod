@@ -11,4 +11,5 @@ use askama::Template;
 struct AuthLayout<'a> {
     title: &'a str,
     body: &'a str,
+    error_message: &'a str,
 }

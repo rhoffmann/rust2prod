@@ -28,6 +28,7 @@ pub struct TestApplication {
     pub connection_pool: PgPool,
     pub email_server: MockServer,
     pub test_user: TestUser,
+    pub api_client: reqwest::Client,
 }
 
 pub struct ConfirmationLinks {
@@ -40,10 +41,7 @@ impl TestApplication {
     where
         Body: serde::Serialize,
     {
-        reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .build()
-            .unwrap()
+        self.api_client
             .post(&format!("{}/login", &self.address))
             .form(body)
             .send()
@@ -52,9 +50,7 @@ impl TestApplication {
     }
 
     pub async fn post_subscriptions(&self, body: String) -> reqwest::Response {
-        let client = reqwest::Client::new();
-
-        client
+        self.api_client
             .post(&format!("{}/subscriptions", &self.address))
             .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
@@ -64,9 +60,7 @@ impl TestApplication {
     }
 
     pub async fn post_newsletters(&self, body: serde_json::Value) -> reqwest::Response {
-        let client = reqwest::Client::new();
-
-        client
+        self.api_client
             .post(&format!("{}/newsletters", &self.address))
             .header("Content-Type", "application/json")
             .basic_auth(&self.test_user.username, Some(&self.test_user.password))
@@ -99,6 +93,17 @@ impl TestApplication {
 
         ConfirmationLinks { html, plain_text }
     }
+
+    pub async fn get_login_html(&self) -> String {
+        self.api_client
+            .get(&format!("{}/login", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+            .text()
+            .await
+            .unwrap()
+    }
 }
 
 /// Spin up instance of the application
@@ -128,12 +133,19 @@ pub async fn spawn_app() -> TestApplication {
     // drop the spawned future handle
     let _ = tokio::spawn(application.run_until_stopped());
 
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .cookie_store(true)
+        .build()
+        .unwrap();
+
     let test_app = TestApplication {
         address,
         connection_pool: get_connection_pool(&configuration.database),
         email_server,
         port: application_port,
         test_user: TestUser::generate(),
+        api_client: client,
     };
 
     test_app.test_user.store(&test_app.connection_pool).await;
