@@ -13,26 +13,24 @@ async fn the_header_contains_an_error_message_on_failure() {
     // act - 1
     // send the post, assert the response (htmx snippet) is 418 and the returned html contains the error message (for htmx)
     let response = app.post_login(&login_body).await;
+    let status = response.status().as_u16();
 
-    // let response_html = response.text().await.expect("Failed to read response body");
-    // assert the cookie is set (will it invalidate immediately?)
-    let cookies = response.cookies().collect::<Vec<_>>();
-    let flash_cookie = cookies.iter().find(|c| c.name() == "_flash").unwrap();
+    let response_html = response.text().await.expect("Failed to read response body");
 
     // we are expecting a teapot
-    assert_eq!(flash_cookie.value(), "Invalid credentials");
-    assert_eq!(response.status().as_u16(), 418);
-    // assert!(response_html.contains("Invalid credentials"));
+    assert_eq!(status, 418);
+    // the immediate response should contain the error message from htmx
+    assert!(response_html.contains("Invalid credentials"));
 
     // act - 2
     // load the /login page
-    // assert the cookie is set (the flash cookie)
-    // assert the error message is displayed
+    // the first load should include the error message in the html after a full reload (from the cookie)
+    let html_page = app.get_login_html().await;
+    assert!(html_page.contains("Invalid credentials"));
 
     // act - 3
     // reload the /login page
-    // assert the cookie is not set
-    // assert the error message is not displayed
+    // the second load should not include the error message in the html, the cookie should have been unset
     let html_page = app.get_login_html().await;
-    assert!(!html_page.contains("Invalid credentials")); // last should not have error message
+    assert!(!html_page.contains("Invalid credentials"));
 }

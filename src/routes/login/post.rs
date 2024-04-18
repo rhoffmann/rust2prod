@@ -1,9 +1,9 @@
 use actix_web::{
-    cookie::Cookie,
     error::InternalError,
     http::header::{self, ContentType},
     web, HttpResponse,
 };
+use actix_web_flash_messages::FlashMessage;
 use secrecy::Secret;
 use sqlx::PgPool;
 
@@ -20,7 +20,7 @@ pub struct LoginData {
 
 #[derive(thiserror::Error)]
 pub enum LoginError {
-    #[error("Authentication failed")]
+    #[error("Invalid credentials")]
     AuthError(#[source] anyhow::Error),
     #[error("Unexpected error occurred")]
     UnexpectedError(#[from] anyhow::Error),
@@ -59,6 +59,9 @@ pub async fn login_post(
                 .finish())
         }
         Err(e) => {
+            // TODO: is this the right way to handle the error? looks a bit convoluted
+            // do we really need the LoginError enum or can we directly use the AuthError?
+            // probably that dance is not necessary when we use htmx?
             let (error_message, e) = match e {
                 AuthError::InvalidCredentials(_) => (
                     "Invalid credentials".to_string(),
@@ -69,6 +72,8 @@ pub async fn login_post(
                     LoginError::UnexpectedError(e.into()),
                 ),
             };
+
+            FlashMessage::error(&error_message).send();
 
             let response = match e {
                 // invalid credentials, show error message in the fragment
@@ -82,15 +87,14 @@ pub async fn login_post(
                     // 418 I'm a teapot is a fun status code to use for this purpose
                     // htmx needs to be configured to allow successfull swap for the response type
                     HttpResponse::ImATeapot()
-                        .cookie(Cookie::new("_flash", error_message))
                         .content_type(ContentType::html())
                         .body(response_fragment)
                 }
+
                 // unexpected error, redirect to login page
                 LoginError::UnexpectedError(_) => HttpResponse::SeeOther()
                     .insert_header((header::LOCATION, "/login"))
                     .insert_header(("HX-Redirect", "/"))
-                    .cookie(Cookie::new("_flash", error_message))
                     .finish(),
             };
 
